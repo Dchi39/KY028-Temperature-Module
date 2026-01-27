@@ -1,69 +1,55 @@
 #include <Arduino.h>
 #include <math.h>
 
-// ===== ESP32 Analog Pin =====
-#define ANALOG_INPUT 7   
+// ===== Hardware Configuration =====
+#define ANALOG_PIN 34        // ESP32 ADC pin
+#define R_FIXED 10000.0      // 10kΩ resistor
+#define BETA 3435.0          // Beta value
+#define T0 298.15            // 25°C in Kelvin
+#define R0 10000.0           // Resistance at 25°C
 
-// ===== Variables =====
-int analog_output;
-int revised_output;
-float temp_C;
-float temp_F;
-
-// ===== Function Prototype =====
-double Thermistor(int RawADC);
-
-void setup()
-{
+void setup() {
     Serial.begin(115200);
-    delay(1000);
 
-    // ESP32 ADC setup
-    analogReadResolution(12);           // 12-bit ADC (0–4095)
-    analogSetAttenuation(ADC_11db);     // Full range ~0–3.3V
+    analogReadResolution(12);       // 0–4095
+    analogSetAttenuation(ADC_11db); // 0–3.3V
 
-    pinMode(ANALOG_INPUT, INPUT);
+    pinMode(ANALOG_PIN, INPUT);
 
-    Serial.println("ESP32 Analog Temperature Sensor Started");
+    Serial.println("ESP32 NTC Temperature Measurement Started");
 }
 
-void loop()
-{
-    // Read analog value
-    analog_output = analogRead(ANALOG_INPUT);
+void loop() {
+    int adcValue = analogRead(ANALOG_PIN);
 
-    // Reverse output (KY-028 thermistor wiring is inverted)
-    revised_output = map(analog_output, 0, 4095, 4095, 0);
+    // Avoid division by zero
+    if (adcValue <= 0 || adcValue >= 4095) {
+        Serial.println("ADC out of range");
+        delay(1000);
+        return;
+    }
 
-    // Calculate temperature
-    temp_C = Thermistor(revised_output);
-    temp_F = (temp_C * 9.0 / 5.0) + 32.0;
+    // Calculate NTC resistance
+    double rNTC = R_FIXED * ((double)adcValue / (4095.0 - adcValue));
 
-    // Print values
-    Serial.print("ADC Value: ");
-    Serial.println(analog_output);
+    // Beta equation
+    double tempK = 1.0 / ((1.0 / T0) + (1.0 / BETA) * log(rNTC / R0));
+    double tempC = tempK - 273.15;
+    double tempF = (tempC * 9.0 / 5.0) + 32.0;
 
-    Serial.print("Temperature: ");
-    Serial.print(temp_C, 1);
-    Serial.print(" °C | ");
-    Serial.print(temp_F, 1);
+    // Output
+    Serial.print("ADC: ");
+    Serial.print(adcValue);
+
+    Serial.print(" | R_NTC: ");
+    Serial.print(rNTC, 0);
+    Serial.print(" ohm");
+
+    Serial.print(" | Temp: ");
+    Serial.print(tempC, 2);
+    Serial.print(" °C  /  ");
+    Serial.print(tempF, 2);
     Serial.println(" °F");
 
-    Serial.println("---------------------------");
-
     delay(1000);
-}
-
-// ===== Thermistor Calculation =====
-double Thermistor(int RawADC)
-{
-    if (RawADC <= 0) return -273.15; // safety check
-
-    double Temp;
-    Temp = log((40950000.0 / RawADC) - 10000.0);
-    Temp = 1.0 / (0.001129148 +
-                  (0.000234125 * Temp) +
-                  (0.0000000876741 * Temp * Temp * Temp));
-    Temp = Temp - 273.15; // Kelvin → Celsius
-    return Temp;
 }
