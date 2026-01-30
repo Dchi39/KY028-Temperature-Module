@@ -2,11 +2,11 @@
 #include <math.h>
 
 // ===== Hardware Configuration =====
-#define ANALOG_PIN 34        // ESP32 ADC pin
-#define R_FIXED 10000.0      // 10kΩ resistor
-#define BETA 3435.0          // Beta value
+#define ANALOG_PIN 7        // ESP32 ADC pin
+#define R_FIXED 100000.0      // 10kΩ resistor
+#define BETA 3950.0          // Beta value
 #define T0 298.15            // 25°C in Kelvin
-#define R0 10000.0           // Resistance at 25°C
+#define R0 100000.0           // Resistance at 25°C
 
 void setup() {
     Serial.begin(115200);

@@ -33,7 +33,8 @@ float Ki = 0.5;
 float Kd = 30.0;
 
 // ================= CONTROL =================
-float setPoint = 35.0;   // °C (same for all)
+// Independent setpoints for each heater
+float setPoint[4] = {40.0, 40.0, 30.0, 30.0};
 
 // ================= PID VARIABLES =================
 float integral[4]  = {0, 0, 0, 0};
@@ -65,7 +66,7 @@ void setup() {
     unsigned long now = millis();
     for (int i = 0; i < 4; i++) lastTime[i] = now;
 
-    Serial.println("ESP32 4-Heater PID Controller Started");
+    Serial.println("ESP32 4-Heater PID Controller with Independent Setpoints Started");
 }
 
 void loop() {
@@ -82,10 +83,10 @@ void loop() {
     pidControl(3, temp[3], PWM_CH_c4);
 
     // Debug output
-    Serial.print("T1: "); Serial.print(temp[0],1);
-    Serial.print(" | T2: "); Serial.print(temp[1],1);
-    Serial.print(" | T3: "); Serial.print(temp[2],1);
-    Serial.print(" | T4: "); Serial.println(temp[3],1);
+    Serial.print("T1: "); Serial.print(temp[0],1); Serial.print(" | SP: "); Serial.print(setPoint[0]);
+    Serial.print(" | T2: "); Serial.print(temp[1],1); Serial.print(" | SP: "); Serial.print(setPoint[1]);
+    Serial.print(" | T3: "); Serial.print(temp[2],1); Serial.print(" | SP: "); Serial.print(setPoint[2]);
+    Serial.print(" | T4: "); Serial.print(temp[3],1); Serial.print(" | SP: "); Serial.println(setPoint[3]);
 
     delay(200);
 }
@@ -96,7 +97,7 @@ void pidControl(uint8_t i, float currentTemp, uint8_t pwmChannel) {
     float dt = (now - lastTime[i]) / 1000.0;
     if (dt <= 0) return;
 
-    float error = setPoint - currentTemp;
+    float error = setPoint[i] - currentTemp;
     integral[i] += error * dt;
     float derivative = (error - lastError[i]) / dt;
 
